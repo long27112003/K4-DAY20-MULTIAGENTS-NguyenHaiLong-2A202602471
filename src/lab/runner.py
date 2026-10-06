@@ -6,10 +6,16 @@ Chạy thật:   python -m lab.runner --condition baseline --tasks learn
 """
 import argparse
 import json
+import shutil
+import tempfile
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
+from langchain_core.callbacks import UsageMetadataCallbackHandler
 from langchain_core.messages import AIMessage, ToolMessage
 
+from .agent import build_agent
 from .grading import grade                                                      # có sẵn
 from .tasks import ROOT, get_task, hash_dir, list_tasks, prepare_sandbox         # có sẵn
 
@@ -65,7 +71,86 @@ def run_task(task_id: str, condition: str, results_dir="results", model=None, re
     Lỗi khi chạy tác tử KHÔNG được làm chương trình dừng: ghi vào `error` và vẫn chấm điểm.
     Sandbox là thư mục tạm NGOÀI kho mã nguồn và phải được xóa sau khi chạy.
     """
-    raise NotImplementedError("TODO 1: cài đặt run_task (xem guides/pseudocode/03_runner.md)")
+    cfg = CONDITIONS[condition]
+    task = get_task(task_id)
+    skills_dir = (ROOT / cfg["skills_dir"]) if cfg["skills_dir"] else None
+    out = Path(results_dir) / condition / task_id
+    out.mkdir(parents=True, exist_ok=True)
+    sandbox = Path(tempfile.mkdtemp(prefix="lab-sandbox-"))
+
+    record = {
+        "task": task_id,
+        "condition": condition,
+        "role": task.role,
+        "error": None,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    try:
+        prepare_sandbox(task, sandbox, skills_dir)
+        hash_truoc = hash_dir(sandbox / "skills")
+        record["skills_sha256"] = hash_truoc
+
+        agent = build_agent(sandbox, mode=cfg["mode"], use_skills=(skills_dir is not None), model=model)
+        usage = UsageMetadataCallbackHandler()
+        t0 = time.time()
+
+        messages = []
+        final = ""
+        try:
+            result = agent.invoke(
+                {"messages": [{"role": "user", "content": task.instruction}]},
+                config={"callbacks": [usage], "recursion_limit": recursion_limit},
+            )
+            messages = result.get("messages", [])
+            if messages:
+                last_m = messages[-1]
+                final = str(last_m.content) if hasattr(last_m, "content") else str(last_m)
+        except Exception as e:
+            record["error"] = f"{type(e).__name__}: {e}"
+            messages = []
+            final = ""
+
+        record["seconds"] = round(time.time() - t0, 1)
+
+        tokens = {"input": 0, "output": 0, "total": 0}
+        for u in usage.usage_metadata.values():
+            tokens["input"] += u.get("input_tokens", 0)
+            tokens["output"] += u.get("output_tokens", 0)
+            tokens["total"] += u.get("total_tokens", 0)
+        record["tokens"] = tokens
+
+        calls = [
+            tc
+            for m in messages
+            if isinstance(m, AIMessage)
+            for tc in (m.tool_calls or [])
+        ]
+        record["tool_calls"] = len(calls)
+        record["subagent_calls"] = sum(1 for tc in calls if tc.get("name") == "task")
+
+        read_skills = set()
+        for tc in calls:
+            if tc.get("name") == "read_file":
+                fp = str(tc.get("args", {}).get("file_path", "")).replace("\\", "/").lstrip("/")
+                if "skills/" in fp:
+                    parts = fp.split("skills/", 1)[1].split("/")
+                    if parts and parts[0]:
+                        read_skills.add(parts[0])
+        record["skills_read"] = len(read_skills)
+
+        record["skills_modified"] = (hash_dir(sandbox / "skills") != hash_truoc)
+        record["final_message"] = final
+
+        g = grade(task, sandbox / "workspace")
+        record.update(g)
+
+        (out / "trace.md").write_text(render_trace(messages), encoding="utf-8")
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
+
+    (out / "run.json").write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
+    return record
 
 
 def main(argv=None):

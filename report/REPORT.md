@@ -10,7 +10,7 @@
 
 - Mô hình (tên deployment hoặc `LAB_MODEL`), nhiệt độ (`LAB_TEMPERATURE`), `recursion_limit`: `deepseek/deepseek-chat` (OpenRouter OpenAI-compatible gateway), `LAB_TEMPERATURE=0`, `recursion_limit=50`
 - Phiên bản Deep Agents (`pip show deepagents`), hệ điều hành, chạy trực tiếp hay trong Docker: `deepagents 0.7.21`, Windows, chạy trực tiếp (local venv)
-- Số lần chạy tác vụ đã dùng / ngân sách: 0 / 20
+- Số lần chạy tác vụ đã dùng / ngân sách: 1 / 20
 - Commit của tag `freeze`:
 
 ## 2. Giả thuyết (commit TRƯỚC tag `freeze`, Phần 4.0)
