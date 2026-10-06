@@ -10,16 +10,16 @@
 
 - Mô hình (tên deployment hoặc `LAB_MODEL`), nhiệt độ (`LAB_TEMPERATURE`), `recursion_limit`: `openai/gpt-4o-mini` (OpenRouter OpenAI-compatible gateway), `LAB_TEMPERATURE=0`, `recursion_limit=50`
 - Phiên bản Deep Agents (`pip show deepagents`), hệ điều hành, chạy trực tiếp hay trong Docker: `deepagents 0.7.21`, Windows, chạy trực tiếp (local venv)
-- Số lần chạy tác vụ đã dùng / ngân sách: 6 / 20
+- Số lần chạy tác vụ đã dùng / ngân sách: 9 / 20
 - Commit của tag `freeze`:
 
 ## 2. Giả thuyết (commit TRƯỚC tag `freeze`, Phần 4.0)
 
 > Dự đoán điều kiện nào đạt điểm cao nhất trên **tác vụ đánh giá** và vì sao. Nêu căn cứ từ phân loại lỗi (mục 4) và từ tài liệu tham khảo. Điền cả ba dòng; `verify_freeze.py` kiểm tra điều này.
 
-- H1 (subagents so với baseline):
-- H2 (skills-auto so với baseline):
-- H3 (tác vụ học so với tác vụ đánh giá):
+- H1 (subagents so với baseline): Trên tác vụ đánh giá (`eval`), điều kiện `subagents` sẽ đạt điểm tương đương hoặc chỉ nhỉnh hơn một ít so với `baseline` ở các check kỹ thuật (nhóm B, D) nhờ cơ chế kiểm tra chéo độc lập của `reviewer`, nhưng sẽ tiêu tốn chi phí token cao hơn ~40-50%. `subagents` sẽ không cải thiện được các check quy ước ẩn (`rule_`) do các quy ước này chưa từng được văn bản hóa trong đề bài ban đầu để Coordinator giao việc.
+- H2 (skills-auto so với baseline): Trên tác vụ học (`learn`), `skills-auto` sẽ cải thiện điểm số đáng kể so với baseline nhờ tích lũy các bài học từ Curator. Tuy nhiên, trên tác vụ đánh giá (`eval`), `skills-auto` dự kiến chỉ nhỉnh hơn nhẹ hoặc xấp xỉ baseline do hiện tượng quá khớp (overfitting ghi nhận trong **SkillEvolBench**): các quy ước tổ chức mới ở tập đánh giá khác với tập học, và tác tử tự động ít khi kích hoạt đọc toàn bộ file `SKILL.md` khi gặp tác vụ mới (theo **SkillsBench**).
+- H3 (tác vụ học so với tác vụ đánh giá): Điểm số trung bình trên tác vụ học (`learn`) sẽ cao hơn tác vụ đánh giá (`eval`) ở mọi điều kiện, rõ rệt nhất là ở `skills-auto`. Lý do là các tác vụ học đã được Curator "thấy trước" các mẫu lỗi để xây dựng quy trình phòng ngừa, trong khi tác vụ đánh giá là hoàn toàn mới (out-of-distribution) với các trường hợp biên và quy ước riêng chưa từng xuất hiện trong vết quá khứ.
 
 ## 3. Làm quen Deep Agents (Phần 0.3)
 
@@ -89,11 +89,19 @@ Các agent cùng chia sẻ chung một môi trường thực thi (`LocalShellBac
 
 ## 6. Self-evolving: skill do curator sinh (Phần 3)
 
-- Số lần chạy curator, số skill bị xóa và lý do:
+- **Số lần chạy curator, số skill bị xóa và lý do:**
+  + Chạy curator 1 lần duy nhất (`python -m lab.curator`), thành công sinh ra 3 skill hợp lệ vào `skills/auto/`.
+  + Số skill bị xóa: 0 skill. Cả 3 skill đều tuân thủ chặt chẽ định dạng YAML frontmatter, độ dài thân bài dưới 80 dòng, và không chứa bất kỳ chuỗi rò rỉ nào thuộc bộ đề đánh giá (`eval_markers()`).
 
 | Skill | Tổng quát hay riêng cho tác vụ học? | Đúng hay sai (nêu chỗ sai nếu có) | Độ dài, `description` và `skills_read` ở Phần 3.4 |
 |---|---|---|---|
-| | | | |
+| `maintain-code-quality` | **Tổng quát:** Đưa ra các quy ước phát triển code Python chuẩn (bảo toàn test gốc, viết kiểm thử hồi quy, cập nhật CHANGELOG, chuẩn hóa cú pháp f-string). | **Đúng:** Khớp chính xác với các quy ước ẩn của Acme (`rule_regression_tests`, `rule_changelog`, `tests_not_modified`). | **10 dòng.** `description`: *"Use when modifying code to ensure compliance with coding standards and documentation."* `skills_read = 0` (tác tử vào thẳng việc duyệt file source `glob` mà bỏ qua bước đọc skill). |
+| `ensure-data-integrity` | **Tổng quát:** Đúc kết quy trình làm sạch dữ liệu bảng CSV (đổi tiền tệ sang integer cents, tạo object `meta`, xuất `clean.csv`, chuẩn hóa UTC). | **Đúng:** Phản ánh đúng các yêu cầu kiểm thử của bot đánh giá ở `data-learn` (`rule_money_in_cents`, `rule_meta_block`, `rule_clean_csv`). | **9 dòng.** `description`: *"Use when processing data to maintain accuracy and compliance with data standards."* `skills_read = 0` (tác tử tập trung phân tích tệp dữ liệu lớn dẫn đến cạn recursion limit). |
+| `validate-json-structure` | **Tổng quát:** Định nghĩa quy trình xác thực định dạng file JSON đầu ra và kiểm soát lỗi giải mã (`JSONDecodeError`). | **Đúng:** Khắc phục lỗi cú pháp JSON và giúp cải thiện trực tiếp check `valid_structure` ở `logs-learn` từ trượt (ở baseline) thành đạt (ở skills-auto). | **9 dòng.** `description`: *"Use when generating JSON outputs to ensure they are correctly formatted and valid."* `skills_read = 0` (tác tử đọc trực tiếp log file `app.log` trước). |
+
+**Nhận xét về hành vi của tác tử đối với Skill:**
+- Cơ chế *Progressive Disclosure* đã đưa danh sách các skill vào system prompt. Tuy nhiên, ở lượt chạy thực tế, `skills_read = 0` cho thấy tác tử có xu hướng hành động ngay lập tức (vội vã tương tác với file dữ liệu hoặc mã nguồn) thay vì ưu tiên đọc tài liệu hướng dẫn (`SKILL.md`), dù prompt đã có chỉ dẫn `As your FIRST action, read the SKILL.md...`.
+- Mặc dù `skills_read = 0`, thông tin tóm lược từ `description` trong system prompt vẫn có ảnh hưởng gián tiếp nhất định đến hành vi (ví dụ: `logs-learn` đã tạo file JSON hợp lệ đạt check `valid_structure`). Hiện tượng này hoàn toàn khớp với phát hiện từ nghiên cứu thực nghiệm **SkillsBench**: skill do mô hình tự sinh thường gặp rào cản ở bước kích hoạt đọc (`triggering`) do mô hình ưu tiên giải quyết tác vụ trước mắt.
 
 ## 7. Kết quả so sánh (Phần 4.3, 4.4)
 

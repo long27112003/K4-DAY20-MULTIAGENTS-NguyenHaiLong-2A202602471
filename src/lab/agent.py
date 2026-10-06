@@ -101,8 +101,12 @@ def build_agent(sandbox: Path, mode: str = "single", use_skills: bool = False, m
         kwargs["skills"] = ["/skills/"]
         prompt = prompt + SKILLS_NOTE
 
+    llm = model or make_model()
+    if hasattr(llm, "max_tokens") and getattr(llm, "max_tokens", None) is None:
+        llm.max_tokens = 4096
+
     return create_deep_agent(
-        model=model or make_model(),
+        model=llm,
         system_prompt=prompt,
         backend=make_backend(sandbox),
         **kwargs,
