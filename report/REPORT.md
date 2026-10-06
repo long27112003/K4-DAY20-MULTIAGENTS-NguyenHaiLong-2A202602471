@@ -8,9 +8,9 @@
 |---|---|---|
 | Nguyễn Hải Long | 2A202602471 | 100% |
 
-- Mô hình (tên deployment hoặc `LAB_MODEL`), nhiệt độ (`LAB_TEMPERATURE`), `recursion_limit`: `deepseek/deepseek-chat` (OpenRouter OpenAI-compatible gateway), `LAB_TEMPERATURE=0`, `recursion_limit=50`
+- Mô hình (tên deployment hoặc `LAB_MODEL`), nhiệt độ (`LAB_TEMPERATURE`), `recursion_limit`: `openai/gpt-4o-mini` (OpenRouter OpenAI-compatible gateway), `LAB_TEMPERATURE=0`, `recursion_limit=50`
 - Phiên bản Deep Agents (`pip show deepagents`), hệ điều hành, chạy trực tiếp hay trong Docker: `deepagents 0.7.21`, Windows, chạy trực tiếp (local venv)
-- Số lần chạy tác vụ đã dùng / ngân sách: 1 / 20
+- Số lần chạy tác vụ đã dùng / ngân sách: 6 / 20
 - Commit của tag `freeze`:
 
 ## 2. Giả thuyết (commit TRƯỚC tag `freeze`, Phần 4.0)
@@ -48,20 +48,44 @@ Các agent cùng chia sẻ chung một môi trường thực thi (`LocalShellBac
 
 ## 4. Đường cơ sở và phân loại lỗi (Phần 2.2)
 
-> Chỉ dùng tác vụ học. Mỗi dòng là một check thất bại.
-
 | Tác vụ | Check thất bại | Nhóm lỗi (A-G) | Bằng chứng (trích ngắn từ `detail` hoặc vết) |
 |---|---|---|---|
-| | | | |
+| `data-learn` | `rule_money_in_cents` | E. Vi phạm quy ước tổ chức | `RULE: money values in answer.json are integer cents (1606.67 USD is written 160667).` |
+| `data-learn` | `rule_meta_block` | E. Vi phạm quy ước tổ chức | `RULE: answer.json has an object meta = {"source": <input file name>, "rows_in": <rows>, "rows_used": <rows>}.` |
+| `data-learn` | `rule_clean_csv` | E. Vi phạm quy ước tổ chức | `RULE: write workspace/clean.csv with the header order_id,timestamp_utc,region,amount_cents...` |
+| `data-learn` | `north_q1_revenue` | D. Bỏ sót dữ liệu bẩn hoặc định dạng | `north_q1_revenue: wrong value (got 443.34)` (chưa chuẩn hóa đa định dạng ngày DD/MM/YYYY, YYYY-MM-DD và offset UTC trước khi lọc Q1). |
+| `data-learn` | `missing_amount_orders` | D. Bỏ sót dữ liệu bẩn hoặc định dạng | `missing_amount_orders: wrong value (got 4)` (bỏ sót giá trị sentinel `-999` đại diện cho amount bị thiếu theo README). |
+| `code-learn` | `tests_not_modified` | A. Bỏ qua đặc tả | `the original files in tests/ must not be modified (new test files are allowed)` (tác tử sửa thẳng vào file test có sẵn thay vì sửa code trong `inventory/`). |
+| `code-learn` | `parse_price_all_formats` | D. Bỏ sót dữ liệu bẩn hoặc định dạng | `wrong for: ['(12.00)']` (chưa xử lý format số âm đặt trong ngoặc đơn kế toán `(12.00)`). |
+| `code-learn` | `other_caller_fixed` | B. Không kiểm chứng | `SyntaxError: f-string expression part cannot include a backslash (export.py, line 12)` (tác tử kết thúc mà không chạy lại test suite để kiểm tra cú pháp). |
+| `code-learn` | `rule_regression_tests` | E. Vi phạm quy ước tổ chức | `RULE: add tests/test_regressions.py with one test function per bug you fixed (at least 3); the file must pass.` |
+| `code-learn` | `rule_changelog` | E. Vi phạm quy ước tổ chức | `RULE: record each fix in CHANGELOG.md under the heading '## Unreleased' as a bullet '- fix(<function name>): <short description>'.` |
+| `logs-learn` | `valid_structure` | B. Không kiểm chứng | `JSONDecodeError: Expecting ',' delimiter: line 1 column 41183 (char 41182)` (file json lớn bị lỗi cú pháp nhưng tác tử không chạy lệnh python để parse validate lại). |
+| `logs-learn` | `rule_service_names` | E. Vi phạm quy ước tổ chức | Check `rule_` thất bại do quy ước chuẩn hóa tên service không có trong mô tả đề bài ban đầu. |
+| `logs-learn` | `rule_sorted_errors` | E. Vi phạm quy ước tổ chức | Check `rule_` thất bại do quy ước sắp xếp thứ tự lỗi theo thời gian là quy ước nội bộ của Acme. |
 
-Nhận xét: nhóm lỗi nào chiếm đa số? Skill có thể phòng ngừa nhóm đó không?
+**Nhận xét:**
+- **Nhóm lỗi chiếm đa số:** Nhóm E (Vi phạm quy ước tổ chức) chiếm đa số tuyệt đối (0/9 check quy ước đạt ở baseline), tiếp theo là Nhóm D (Bỏ sót định dạng/dữ liệu bẩn) và Nhóm B (Không chạy lệnh kiểm chứng trước khi kết thúc).
+- **Nguyên nhân chung:** Mô hình baseline chưa từng được tiếp cận các quy ước nội bộ không văn bản hóa của Acme (`house-rules`). Đối với các lỗi kỹ thuật (A-D), tác tử vội vã kết thúc mà không tận dụng công cụ `execute` để chạy kiểm tra chéo (sanity checks/linter/parser).
+- **Bằng chứng phủ định:** Theo `python scripts/check_breakdown.py`, tác tử baseline đạt 2/18 check kỹ thuật (`discount_rounds_half_up` trong `code-learn` và `top_region` trong `data-learn`), chứng tỏ mô hình có năng lực hiểu bài toán cơ bản nhưng thiếu thông tin quy ước.
+- **Khả năng phòng ngừa của Skill:** Kỹ năng (Skill) hoàn toàn có thể phòng ngừa triệt để nhóm E và nhóm D bằng cách tài liệu hóa các quy ước (meta block, clean.csv, format cents, changelog, regression tests, format ngày/timezone) vào `skills/auto/`, giúp tác tử nạp vào context ngay từ bước đầu tiên (`SKILLS_NOTE`).
 
 ## 5. Điều kiện `subagents` (Phần 2.3)
 
-- Các subagent đã định nghĩa (tên, vai trò, lý do thiết kế):
-- `subagent_calls` ở từng tác vụ và nhận xét (kể cả trường hợp bằng 0):
-- Thông tin thiếu hoặc thừa khi giao việc (nếu có giao việc):
-- Ảnh hưởng đến token và thời gian:
+- **Các subagent đã định nghĩa (tên, vai trò, lý do thiết kế):**
+  + `explorer`: Chuyên khảo sát cấu trúc tệp, đọc docstring, README và mẫu dữ liệu bẩn; báo cáo sự thật khách quan, không sửa đổi file. Thiết kế nhằm tránh làm ô nhiễm không gian làm việc trong giai đoạn tìm hiểu.
+  + `implementer`: Chuyên thực hiện chỉnh sửa mã nguồn, viết script lọc dữ liệu, sửa lỗi và chạy lệnh shell. Thiết kế để tập trung vào logic thực thi.
+  + `reviewer`: Chuyên độc lập đối chiếu kết quả đầu ra với đề bài, kiểm tra tính hợp lệ của file JSON/CSV và các trường hợp biên. Thiết kế nhằm khắc phục nhóm lỗi B (Không kiểm chứng).
+- **`subagent_calls` ở từng tác vụ và nhận xét (kể cả trường hợp bằng 0):**
+  + `code-learn`: `subagent_calls = 0` (tác tử chính tự trực tiếp đọc file và gọi lệnh sửa).
+  + `data-learn`: `subagent_calls = 1` (tác tử chính nhận thấy tác vụ phân tích dữ liệu phức tạp nên đã ủy quyền cho subagent qua công cụ `task`).
+  + `logs-learn`: `subagent_calls = 0` (tác tử chính tự mình xử lý đọc và phân tích file log).
+  + *Nhận xét:* Việc `subagent_calls = 0` ở 2 tác vụ là hoàn toàn bình thường và hợp lệ; tác tử chính tự chủ quyết định chỉ ủy quyền khi tác vụ có khối lượng tính toán/phân tích lớn (`data-learn`).
+- **Thông tin thiếu hoặc thừa khi giao việc (nếu có giao việc):**
+  + Ở `data-learn`, prompt giao việc của tác tử chính rất chi tiết (nêu rõ các cột, điều kiện lọc Q1, xử lý -999, các khóa cần xuất). Tuy nhiên, thông tin về các quy ước ẩn của Acme (`rule_money_in_cents`, `rule_clean_csv`, `rule_meta_block`) vẫn bị thiếu vì bản thân tác tử chính lúc này chưa biết các quy ước này.
+- **Ảnh hưởng đến token và thời gian:**
+  + **Token:** Trung bình tiêu thụ ở điều kiện `subagents` là **64,700 tokens**, tăng khoảng **49.1%** so với `baseline` (**43,379 tokens**). Sự gia tăng chủ yếu đến từ `data-learn` (146,297 tokens so với 40,471 tokens) do chi phí ngữ cảnh khi khởi tạo và trao đổi với subagent.
+  + **Thời gian & Hiệu quả:** Ở `code-learn`, tác tử trong điều kiện subagents đạt kết quả tốt hơn (**2/10 check đạt**, 20.0s, 21,887 tokens) so với baseline (**1/10 check đạt**, 44.7s, 46,279 tokens) do hệ thống prompt phân quyền giúp tác tử định hướng hành động dứt khoát hơn.
 
 ## 6. Self-evolving: skill do curator sinh (Phần 3)
 
