@@ -1,0 +1,69 @@
+{
+  "task": "logs-learn",
+  "condition": "skills-auto",
+  "role": "learn",
+  "error": null,
+  "timestamp": "2026-10-06T05:45:24.359535+00:00",
+  "skills_sha256": "53d85276d16990e3ae3c1a03efb31b6393025013257fe4ce3e48cf720fbb033b",
+  "seconds": 45.9,
+  "tokens": {
+    "input": 14645,
+    "output": 4138,
+    "total": 18783
+  },
+  "tool_calls": 2,
+  "subagent_calls": 0,
+  "skills_read": 0,
+  "skills_modified": false,
+  "final_message": "",
+  "score": 0.0,
+  "passed": 0,
+  "total": 9,
+  "checks": [
+    {
+      "name": "valid_structure",
+      "passed": false,
+      "detail": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\lab-sandbox-7ffgiwr_\\\\workspace\\\\errors.json'"
+    },
+    {
+      "name": "entry_count",
+      "passed": false,
+      "detail": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\lab-sandbox-7ffgiwr_\\\\workspace\\\\errors.json'"
+    },
+    {
+      "name": "timestamps_utc",
+      "passed": false,
+      "detail": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\lab-sandbox-7ffgiwr_\\\\workspace\\\\errors.json'"
+    },
+    {
+      "name": "exception_fields",
+      "passed": false,
+      "detail": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\lab-sandbox-7ffgiwr_\\\\workspace\\\\errors.json'"
+    },
+    {
+      "name": "repeat_counts",
+      "passed": false,
+      "detail": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\lab-sandbox-7ffgiwr_\\\\workspace\\\\errors.json'"
+    },
+    {
+      "name": "counts_by_service",
+      "passed": false,
+      "detail": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\lab-sandbox-7ffgiwr_\\\\workspace\\\\errors.json'"
+    },
+    {
+      "name": "rule_service_names",
+      "passed": false,
+      "detail": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\lab-sandbox-7ffgiwr_\\\\workspace\\\\errors.json'"
+    },
+    {
+      "name": "rule_sorted_errors",
+      "passed": false,
+      "detail": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\lab-sandbox-7ffgiwr_\\\\workspace\\\\errors.json'"
+    },
+    {
+      "name": "rule_schema_header",
+      "passed": false,
+      "detail": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\Administrator\\\\AppData\\\\Local\\\\Temp\\\\lab-sandbox-7ffgiwr_\\\\workspace\\\\errors.json'"
+    }
+  ]
+}

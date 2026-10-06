@@ -1,0 +1,69 @@
+{
+  "task": "data-eval",
+  "condition": "skills-auto",
+  "role": "eval",
+  "error": "APIStatusError: Error code: 402 - {'error': {'message': 'This request would exceed your available credits given your current in-flight requests. Retry after in-flight requests settle, or add credits.', 'code': 402, 'metadata': {'reason': 'in_flight_budget_exhausted', 'limit_source': 'openrouter_in_flight_budget', 'remedy_hint': 'Retry after your in-flight requests settle (see the Retry-After header). Adding credits at https://openrouter.ai/settings/credits raises your in-flight budget, up to a capped ceiling.', 'headers': {'Retry-After': '120'}, 'provider_name': None}}, 'user_id': 'user_3KJ94XPnKf46kqow2q9psL0VSGM'}",
+  "timestamp": "2026-10-06T05:49:51.098938+00:00",
+  "skills_sha256": "53d85276d16990e3ae3c1a03efb31b6393025013257fe4ce3e48cf720fbb033b",
+  "seconds": 2.2,
+  "tokens": {
+    "input": 3196,
+    "output": 51,
+    "total": 3247
+  },
+  "tool_calls": 0,
+  "subagent_calls": 0,
+  "skills_read": 0,
+  "skills_modified": false,
+  "final_message": "",
+  "score": 0.0,
+  "passed": 0,
+  "total": 9,
+  "checks": [
+    {
+      "name": "march_revenue_utc",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "march_orders_utc",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "top_category",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "missing_total_orders",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "duplicate_events_removed",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "rule_money_in_cents",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "rule_meta_block",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "rule_clean_csv",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "rule_sorted_keys_format",
+      "passed": false,
+      "detail": ""
+    }
+  ]
+}
